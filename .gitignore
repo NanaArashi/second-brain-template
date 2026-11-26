@@ -1,0 +1,21 @@
+# 课件 / 真题 / 论文原件，不进仓库
+08_materials/
+
+# 插件代码与本机布局（插件从社区市场安装；见 README）
+.obsidian/plugins/
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# 本机看板配置（从 config.example.json 复制）
+01_dashboard/config.json
+
+# 缓存与环境变量
+__pycache__/
+*.pyc
+.env
+.env.*
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini

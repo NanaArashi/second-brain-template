@@ -1,0 +1,432 @@
+/* checklist-notes v0.6 | Standalone Obsidian snippet.
+   Scope: only notes with cssclasses: [checklist-notes].
+   Reading view + Live Preview; active editing syntax stays visible.
+   Native list markers are preserved. No plugins or external assets. */
+.checklist-notes {
+  --cn-heading: #e4bf62;
+  --cn-label: #ed937d;
+  --cn-sub: #d9b9aa;
+  --cn-detail: #a8a8a8;
+  --cn-text: #d5d5d5;
+  --cn-emphasis: #91c6a4;
+  --cn-link: #d978a8;
+  --cn-marker: #81a9cd;
+  --cn-border: #626a64;
+  --cn-header-bg: #302f2a;
+  --cn-row-bg: #252925;
+  --cn-callout: 95, 154, 210;
+  --cn-font-size: 16px;
+  --cn-line-height: 1.7;
+  --cn-width: 900px;
+  --font-text-size: var(--cn-font-size);
+  --line-height-normal: var(--cn-line-height);
+  --file-line-width: var(--cn-width);
+  --bold-weight: 700;
+  --list-spacing: .35em;
+  --p-spacing: .85rem;
+  --h1-color: var(--cn-heading);
+  --h2-color: var(--cn-heading);
+  --h3-color: var(--cn-label);
+  --text-normal: var(--cn-text);
+  --text-highlight-bg: transparent;
+  --table-cell-vertical-alignment: top;
+}
+.theme-light .checklist-notes {
+  --cn-heading: #896516;
+  --cn-label: #a34c36;
+  --cn-sub: #886251;
+  --cn-detail: #555555;
+  --cn-text: #333333;
+  --cn-emphasis: #30744b;
+  --cn-link: #a94379;
+  --cn-marker: #477aa5;
+  --cn-border: #b5bdb7;
+  --cn-header-bg: #f1eee6;
+  --cn-row-bg: #f5f7f4;
+}
+/* Shared typography. Avoid changing CodeMirror line display or indentation. */
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes {
+  color: var(--cn-text);
+  font-size: var(--cn-font-size);
+  line-height: var(--cn-line-height);
+}
+body .markdown-preview-view.checklist-notes .markdown-preview-sizer,
+body .markdown-source-view.mod-cm6.checklist-notes .cm-sizer {
+  max-width: var(--cn-width);
+  margin-inline: auto;
+}
+body .markdown-preview-view.checklist-notes :is(p, li, td),
+body .markdown-source-view.mod-cm6.checklist-notes .cm-line {
+  overflow-wrap: break-word;
+  word-break: normal;
+  text-wrap: pretty;
+}
+body .markdown-preview-view.checklist-notes p {
+  margin-block: .55em .85em;
+}
+body .markdown-preview-view.checklist-notes :is(h1, h2),
+body .markdown-source-view.mod-cm6.checklist-notes :is(.cm-header-1, .cm-header-2),
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes .inline-title {
+  color: var(--cn-heading) !important;
+  font-weight: 700;
+}
+body .markdown-preview-view.checklist-notes h2 {
+  margin-block: 1.5em .65em;
+}
+body .markdown-preview-view.checklist-notes :is(ol, ul) {
+  margin-block: .4em .7em;
+}
+body .markdown-preview-view.checklist-notes li {
+  margin-block: .35em;
+}
+body .markdown-preview-view.checklist-notes li::marker {
+  color: var(--cn-marker);
+}
+/* Exactly one structural bold label per item; content emphasis uses == ==. */
+body .markdown-preview-view.checklist-notes li > strong:first-child,
+body .markdown-preview-view.checklist-notes li > p > strong:first-child,
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-1 .cm-strong {
+  color: var(--cn-label);
+  font-weight: 700;
+}
+body .markdown-preview-view.checklist-notes li li > strong:first-child,
+body .markdown-preview-view.checklist-notes li li > p > strong:first-child,
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-2 .cm-strong {
+  color: var(--cn-sub);
+}
+body .markdown-preview-view.checklist-notes li li li > strong:first-child,
+body .markdown-preview-view.checklist-notes li li li > p > strong:first-child,
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-3 .cm-strong {
+  color: var(--cn-detail);
+}
+/* Semantic emphasis only, never em or an entire parent row. */
+body .markdown-preview-view.checklist-notes mark,
+body .markdown-source-view.mod-cm6.checklist-notes .cm-highlight,
+body .markdown-source-view.mod-cm6.checklist-notes mark {
+  color: var(--cn-emphasis) !important;
+  background: transparent !important;
+  font-weight: 700 !important;
+  font-style: normal !important;
+  padding: 0;
+  box-shadow: none;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .cm-formatting-highlight {
+  color: var(--text-faint) !important;
+  font-weight: 400 !important;
+}
+body .markdown-preview-view.checklist-notes em,
+body .markdown-source-view.mod-cm6.checklist-notes .cm-em {
+  color: inherit;
+  font-weight: inherit;
+}
+body .markdown-preview-view.checklist-notes a,
+body .markdown-source-view.mod-cm6.checklist-notes :is(.cm-link, .cm-hmd-internal-link, .cm-url) {
+  color: var(--cn-link);
+}
+body .markdown-source-view.mod-cm6.checklist-notes .cm-formatting-list {
+  color: var(--cn-marker);
+}
+/* Same table cells in reading and the rendered live-preview table widget.
+   separate layout: 第一列留空即可跨行合并（空单元格无左右边框，只有下边线）。 */
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes table {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--cn-font-size);
+  line-height: var(--cn-line-height);
+  margin-block: 1em;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes :is(th, td) {
+  border: 0;
+  border-bottom: 1px solid var(--cn-border);
+  padding: 10px 14px;
+  vertical-align: middle;
+  color: var(--cn-text);
+  line-height: var(--cn-line-height);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes :is(th, td) + :is(th, td) {
+  box-shadow: inset 1px 0 0 var(--cn-border);
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes tbody tr:last-child td {
+  border-bottom: 0;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes th {
+  background: var(--cn-header-bg);
+  font-weight: 700;
+  text-align: left;
+  border-bottom: 1px solid var(--cn-border);
+}
+/* 无斑马纹：所有行背景透明，第一列"留空合并"的格子背景才连续成一个竖长大格 */
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes tbody tr,
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes tbody tr:nth-child(even) {
+  background: transparent;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes td strong {
+  color: var(--cn-detail);
+  font-weight: 700;
+}
+body .markdown-preview-view.checklist-notes .el-table,
+body .markdown-source-view.mod-cm6.checklist-notes .cm-table-widget {
+  max-width: 100%;
+  overflow-x: auto;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes .callout[data-callout="info"] {
+  --callout-color: var(--cn-callout);
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes .callout strong {
+  color: var(--cn-text);
+  font-weight: 700;
+}
+body .markdown-preview-view.checklist-notes code,
+body .markdown-source-view.mod-cm6.checklist-notes .cm-inline-code {
+  color: var(--cn-text);
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* Rendered strong in editor widgets, h3 and markers share explicit semantics. */
+body .markdown-preview-view.checklist-notes h3,
+body .markdown-source-view.mod-cm6.checklist-notes .cm-header-3 {
+  color: var(--cn-label) !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .cm-strong {
+  font-weight: 700;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line .cm-strong {
+  color: var(--cn-label);
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-2 .cm-strong {
+  color: var(--cn-sub);
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-3 .cm-strong {
+  color: var(--cn-detail);
+}
+
+/* Screenshot entry only; ordinary notes keep editable properties visible. */
+body .checklist-notes.checklist-cover .metadata-container { display: none; }
+body .markdown-preview-view.checklist-notes h1 {
+  border-bottom-color: var(--cn-border);
+}
+body .markdown-source-view.mod-cm6.checklist-notes :is(.HyperMD-header-1, .HyperMD-header-2) {
+  color: var(--cn-heading) !important;
+}
+
+/* Scoped table rules also win over existing vault-wide gradient snippets. */
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) {
+  table-layout: auto !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: 1px solid var(--cn-border) !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) :is(th, td) {
+  padding: 10px 14px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--cn-border) !important;
+  background-image: none !important;
+  color: var(--cn-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+  vertical-align: middle !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) :is(th, td) + :is(th, td) {
+  box-shadow: inset 1px 0 0 var(--cn-border) !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) th {
+  background: var(--cn-header-bg) !important;
+  border-bottom: 1px solid var(--cn-border) !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) tbody tr,
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) tbody tr:nth-child(even) {
+  background: transparent !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) tbody td {
+  background: transparent !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) tbody tr:hover td {
+  background: color-mix(in srgb, var(--background-primary) 96%, var(--cn-heading) 4%) !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) tbody tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+/* Reference note's visual hierarchy, scoped to this Skill's class. */
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes .callout[data-callout="info"] {
+  --callout-color: 26, 132, 241 !important;
+  background: #1d2839 !important;
+  border-radius: 6px !important;
+  padding: 14px 20px !important;
+}
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes .callout[data-callout="info"] .callout-title { color:#1684f5 !important; font-weight:700 !important; }
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes :is(a,.cm-link,.cm-hmd-internal-link,.cm-url) { color:#dc6a9e !important; }
+body .markdown-preview-view.checklist-notes :is(ol,ul) > li > :is(strong,p > strong) { color:var(--cn-label) !important; }
+body .markdown-preview-view.checklist-notes :is(ol,ul) :is(ol,ul) > li > :is(strong,p > strong) { color:var(--cn-sub) !important; }
+body .markdown-preview-view.checklist-notes :is(ol,ul) :is(ol,ul) :is(ol,ul) > li > :is(strong,p > strong) { color:var(--cn-detail) !important; }
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-1 .cm-strong {color:var(--cn-label) !important;}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-2 .cm-strong {color:var(--cn-sub) !important;}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-3 .cm-strong {color:var(--cn-detail) !important;}
+/* Table row names use the same first-level color in Reading and Live Preview,
+   including ordinary text without Markdown bold markers. */
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table) tbody td:first-child {
+  color: var(--cn-label) !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-weight: 700 !important;
+}
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes table tbody td:first-child strong { color:var(--cn-label) !important; }
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes table tbody td:nth-child(2) strong { color:var(--cn-sub) !important; }
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes table tbody td:nth-child(n+3) strong { color:var(--cn-detail) !important; }
+body :is(.markdown-preview-view,.markdown-source-view.mod-cm6).checklist-notes table { margin-block:26px 28px !important; }
+body .markdown-preview-view.checklist-notes .el-table + .el-p {margin-top:14px !important;}
+
+/* ===== 序号层级：一级数字 / 二级字母 / 三级罗马 ===== */
+/* 阅读模式：原生 list-style-type 区分层级 */
+body .markdown-preview-view.checklist-notes ol ol {
+  list-style-type: lower-alpha;
+}
+body .markdown-preview-view.checklist-notes ol ol ol {
+  list-style-type: lower-roman;
+}
+/* 编辑模式：用 CSS counter 生成 a./i. 序号，一级仍显示原生数字 */
+body .markdown-source-view.mod-cm6.checklist-notes .cm-content {
+  counter-reset: cn-l2 cn-l3;
+}
+/* 扁平 DOM：一/二级项与子项是兄弟节点，必须用 counter-set（不新建作用域）
+   在父项处归零，否则二级字母会跨父项连续累加（a..h 后接 i j k）。 */
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-1 {
+  counter-reset: none !important;
+  counter-set: cn-l2 0 cn-l3 0 !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-2 {
+  counter-increment: cn-l2;
+  counter-reset: none !important;
+  counter-set: cn-l3 0 !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-3 {
+  counter-increment: cn-l3;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line .cm-formatting-list {
+  display: inline-block !important;
+  position: relative !important;
+  width: 1.7em !important;
+  min-width: 1.7em !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  color: transparent !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  vertical-align: baseline !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line .cm-formatting-list::after {
+  display: block !important;
+  position: absolute !important;
+  inset: 0 auto auto 0 !important;
+  width: 1.7em !important;
+  color: var(--cn-marker) !important;
+  font-size: inherit !important;
+  font-weight: 500 !important;
+  line-height: inherit !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-1 .cm-formatting-list::after {
+  content: none !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-1 .cm-formatting-list {
+  color: var(--cn-marker) !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-2 .cm-formatting-list::after {
+  content: counter(cn-l2, lower-alpha) ".";
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-3 .cm-formatting-list::after {
+  content: counter(cn-l3, lower-roman) ".";
+}
+
+/* 编辑模式使用 Obsidian 的原生列表缩进。不要把 .cm-indent 宽度归零：
+   该元素与编辑器的缩进布局相关，归零会让 a/b/c 看起来与一级平齐。 */
+body .markdown-source-view.mod-cm6.checklist-notes {
+  --list-indent: 2em;
+}
+
+/* ===== 关闭列表缩进参考竖线（Blue Topaz indentation guide）===== */
+body .markdown-preview-view.checklist-notes :is(ol, ul) :is(ol, ul)::before,
+body.bt-colorful-indentation-lines .markdown-preview-view.checklist-notes :is(ol, ul) :is(ol, ul)::before,
+body.bt-connected-indent-hover .markdown-preview-view.checklist-notes :is(ol, ul) :is(ol, ul)::before,
+body.bt-connected-indent-hover .markdown-preview-view.checklist-notes li::before,
+body.bt-connected-indent-hover .markdown-preview-view.checklist-notes li::after,
+body.bt-colorful-indentation-lines-reading .markdown-preview-view.checklist-notes .list-bullet::before {
+  content: none !important;
+  display: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes {
+  --indentation-guide-color: transparent !important;
+  --indentation-guide-color-active: transparent !important;
+}
+/* 只关竖线，绝不碰缩进空白：编辑模式二级/三级列表的缩进由 .cm-indent 宽度
+   和 .cm-hmd-list-indent 内容提供，不能 content:none 掉，否则 a./i. 会顶到与
+   一级数字同一列、失去层级缩进。默认主题下竖线用官方变量关闭即可。 */
+
+/* ===== 表格内嵌训练清单（ol.course-training，自动 1-5 计数）===== */
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes table ol.course-training {
+  margin: .6em 0 0 !important;
+  padding: 0 0 0 1.8em !important;
+  list-style: none !important;
+  counter-reset: cn-course-item !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes table ol.course-training > li {
+  display: block !important;
+  position: relative !important;
+  margin: .4em 0 !important;
+  padding: 0 !important;
+  line-height: 1.65 !important;
+  color: var(--cn-text) !important;
+  font-weight: 400 !important;
+  list-style: none !important;
+  counter-increment: cn-course-item !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes table ol.course-training > li::before {
+  content: counter(cn-course-item, decimal) "." !important;
+  display: block !important;
+  position: absolute !important;
+  left: -1.8em !important;
+  top: 0 !important;
+  width: 1.4em !important;
+  height: auto !important;
+  text-align: right !important;
+  color: var(--cn-marker) !important;
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  transform: none !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes table ol.course-training > li::marker {
+  content: "" !important;
+}
+/* Give nested CodeMirror list rows a visible block offset in Live Preview. */
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-2 {
+  margin-left: 2em !important;
+  width: calc(100% - 2em) !important;
+}
+body .markdown-source-view.mod-cm6.checklist-notes .HyperMD-list-line-3 {
+  margin-left: 4em !important;
+  width: calc(100% - 4em) !important;
+}
+
+/* Visually join a populated stage cell with following empty first-column cells.
+   Markdown has no rowspan; this removes internal horizontal borders only. */
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table):has(thead th:nth-child(3)) tbody tr:has(+ tr > td:first-child:empty) > td:first-child {
+  border-bottom: 0 !important;
+}
+body :is(.markdown-preview-view, .markdown-source-view.mod-cm6).checklist-notes.checklist-notes.checklist-notes table:not(.table-view-table):has(thead th:nth-child(3)) tbody tr > td:first-child:empty {
+  background: transparent !important;
+}

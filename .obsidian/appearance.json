@@ -1,0 +1,10 @@
+{
+  "showRibbon": true,
+  "enabledCssSnippets": [
+    "checklist-notes",
+    "minimal-warm-paper"
+  ],
+  "cssTheme": "",
+  "accentColor": "",
+  "theme": "obsidian"
+}
