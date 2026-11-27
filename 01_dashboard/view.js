@@ -25,13 +25,13 @@ const V = {
   narrowBelow: 760,
   news: "placeholder", // false=整张卡关掉；"placeholder"=留空框架不接数据；true=接真实抓取（火山方舟豆包总结 + 联网，需 ARK_API_KEY）
   research: "placeholder", // 科研情报卡：false=关；"placeholder"=空框架；true=接 fetch-research.mjs（独立于旧资讯卡）
-  row0: 220, // 第0行（学科目录 + 搜索）的高度
-  row3: 300, // 第四行（灵感箱 + 目标锚点）的高度；前三行撑满一屏，底部两行往下滚才看到
-  row4: 300, // 第五行（资讯 + 番茄钟）的高度
-  row5: 320, // 第六行（科研情报卡）的高度
+  row0: 260, // 第0行（学科目录 + 搜索）的高度
+  row3: 360, // 第四行（灵感箱 + 目标锚点）的高度；前三行撑满一屏，底部两行往下滚才看到
+  row4: 430, // 第五行（资讯 + 番茄钟）的高度
+  row5: 380, // 第六行（科研情报卡）的高度
 };
 try { Object.assign(V, JSON.parse(await app.vault.adapter.read(`${V.dir || "01_dashboard"}/config.json`))); } catch (e) { /* 没有 config.json 就用缺省值 */ }
-if (V.news === false) { V.row3 = 300; V.row4 = 220; } // 没有资讯卡，第四行只剩番茄钟，压矮（和 view.css 的 .no-news 对应）
+if (V.news === false) { V.row3 = 360; V.row4 = 260; } // 没有资讯卡，第四行只剩番茄钟，压矮（和 view.css 的 .no-news 对应）
 if (V.research === false) { V.row5 = 0; } // 科研卡关掉，第六行不占高度（和 view.css 的 .no-research 对应）
 const baseName = p => String(p).split("/").pop().replace(/\.md$/, "");
 
@@ -1271,78 +1271,58 @@ function maybeAutoResearch(root, R) {
   runResearch(root);
 }
 
-// ---------- 07 番茄钟：25 分专注 / 5 分休息。按结束时间戳算剩余，存 localStorage，看板重画、切笔记、重启 Obsidian 都接得上 ----------
-const POMO_KEY = "sb-pomo";
-const POMO_MS = () => window.__sbPomoMs || { focus: 25 * 60e3, brk: 5 * 60e3 }; // 测试时可在控制台改短
-function pomoLoad() {
-  try { const s = JSON.parse(localStorage.getItem(POMO_KEY)); if (s && s.phase) return s; } catch (e) { /* 没有或读不了 */ }
-  return { phase: "focus", running: false, endsAt: 0, left: POMO_MS().focus, day: ymd(new Date()), count: 0 };
+// ---------- 看板明暗主题：手动切换，localStorage 记住；没存过就跟随 Obsidian 明暗 ----------
+const THEME_KEY = "sb-theme";
+function themeBgUrl(theme) {
+  const name = theme === "dark" ? "monet-lily.jpg" : "monet-dawn.jpg";
+  const f = tfile(`${V.dir || "01_dashboard"}/assets/${name}`);
+  if (!f) return "";
+  try { return app.vault.getResourcePath(f); } catch (e) { return ""; }
 }
-function pomoSave(s) { try { localStorage.setItem(POMO_KEY, JSON.stringify(s)); } catch (e) { /* 存不了就只在这次会话里有效 */ } }
-const pomoTotal = s => s.phase === "focus" ? POMO_MS().focus : POMO_MS().brk;
-const pomoLeft = s => s.running ? Math.max(0, s.endsAt - Date.now()) : s.left;
-// 到点：专注结束 → 计数 +1、自动开始休息；休息结束 → 回到专注、停着等你点开始。离开太久错过的只补状态，不补发通知
-function pomoStep(s) {
-  const today = ymd(new Date());
-  let changed = false;
-  if (s.day !== today) { s.day = today; s.count = 0; changed = true; }
-  while (s.running && Date.now() >= s.endsAt) {
-    const late = Date.now() - s.endsAt > 60e3;
-    if (s.phase === "focus") {
-      s.count++; s.phase = "break"; s.endsAt += POMO_MS().brk;
-      if (!late) pomoNotify("专注 25 分钟完成", `今天第 ${s.count} 个。休息 5 分钟，起来走走`);
-    } else {
-      s.phase = "focus"; s.running = false; s.left = POMO_MS().focus;
-      if (!late) pomoNotify("休息结束", "回来点「开始」进入下一个番茄");
-    }
-    changed = true;
-  }
-  return changed;
+function getTheme() {
+  try { const s = localStorage.getItem(THEME_KEY); if (s === "light" || s === "dark") return s; } catch (e) { /* 存不了就跟随系统 */ }
+  return document.body.classList.contains("theme-dark") ? "dark" : "light";
 }
-function pomoNotify(title, body) {
-  try { new Notification(title, { body }); } catch (e) { console.warn("[sb-board] 通知发不出来", e); }
+function applyTheme(root) {
+  const t = getTheme();
+  root.classList.toggle("sb-light", t === "light");
+  root.classList.toggle("sb-dark", t === "dark");
+  const bg = themeBgUrl(t);
+  if (bg) root.style.setProperty("--bg-img", `url("${bg}")`);
+  const btn = root.querySelector(".sb-theme");
+  if (btn) { btn.textContent = t === "dark" ? "☀" : "☾"; btn.title = t === "dark" ? "切到浅色" : "切到深色"; }
 }
-const pomoFmt = ms => { const sec = Math.ceil(ms / 1000); return { mm: Math.floor(sec / 60), ss: sec % 60 }; };
-const pad2 = n => pad(n);
-function pomoPaint(el, s) {
-  const left = pomoLeft(s), total = pomoTotal(s), { mm, ss } = pomoFmt(left);
-  const set = (k, v, fmt) => { const n = el.querySelector(`[data-pomo="${k}"]`); if (!n) return; const want = fmt ? fmt(v) : String(v); if ((n.firstChild && n.firstChild.textContent) !== want) rollTo(n, v, fmt); };
-  set("mm", mm, pad2); set("ss", ss, pad2); set("count", s.count);
-  const arc = el.querySelector(".arc"); if (arc) arc.style.strokeDashoffset = String(553 * (1 - (total ? (total - left) / total : 0)));
-  el.classList.toggle("running", !!s.running); el.classList.toggle("brk", s.phase === "break");
-  const ph = el.querySelector(".ph"); const phT = s.phase === "break" ? "休息" : s.running ? "专注中" : left < total ? "暂停" : "专注"; if (ph && ph.textContent !== phT) ph.textContent = phT;
-  const btn = el.querySelector('[data-act="pomo-toggle"]'); const bT = s.running ? "暂停" : left < total ? "继续" : "开始"; if (btn && btn.textContent !== bT) btn.textContent = bT;
+function toggleTheme(root) {
+  const next = getTheme() === "dark" ? "light" : "dark";
+  try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* 存不了就本次会话有效 */ }
+  applyTheme(root);
 }
-function pomoTick() {
-  const s = pomoLoad();
-  if (pomoStep(s)) pomoSave(s);
-  document.querySelectorAll(".sb-board:not(.sb-ghost) .pomo").forEach(el => pomoPaint(el, s));
+
+// ---------- 标签分页：首页一次只显示一个分区，胶囊切换 ----------
+const PANE_KEY = "sb-pane";
+const SECTIONS = [
+  { id: "today", label: "今天", kinds: ["today"] },
+  { id: "week", label: "本周", kinds: ["week", "ideas"] },
+  { id: "tracks", label: "轨道", kinds: ["tracks", "stack", "anchors"] },
+  { id: "dir", label: "目录", kinds: ["dirsearch"] },
+  { id: "news", label: "资讯", kinds: ["news"] },
+  { id: "research", label: "科研", kinds: ["research"] },
+];
+function getPane() {
+  try { const p = localStorage.getItem(PANE_KEY); if (SECTIONS.some(s => s.id === p)) return p; } catch (e) { /* 存不了就用默认 */ }
+  return "today";
 }
-function pomoAct(name) {
-  const s = pomoLoad(); pomoStep(s);
-  if (name === "pomo-toggle") {
-    if (s.running) { s.left = Math.max(0, s.endsAt - Date.now()); s.running = false; }
-    else { s.endsAt = Date.now() + s.left; s.running = true; }
-  } else if (name === "pomo-reset") { s.phase = "focus"; s.running = false; s.left = POMO_MS().focus; }
-  pomoSave(s); pomoTick();
+function applyPane(root) {
+  const cur = getPane();
+  root.querySelectorAll(".sb-pane").forEach(p => p.classList.toggle("active", p.dataset.pane === cur));
+  root.querySelectorAll(".hpill").forEach(b => b.classList.toggle("active", b.dataset.pane === cur));
 }
-function startPomo() {
-  if (window.__sbPomoTimer) clearInterval(window.__sbPomoTimer); // 代码更新后换成新的；只留一个
-  window.__sbPomoTimer = setInterval(pomoTick, 250);
+function switchPane(root, id) {
+  if (!SECTIONS.some(s => s.id === id)) return;
+  try { localStorage.setItem(PANE_KEY, id); } catch (e) { /* 存不了就本次会话有效 */ }
+  applyPane(root);
 }
-function cardPomo() {
-  const s = pomoLoad(); pomoStep(s);
-  const left = pomoLeft(s), total = pomoTotal(s), { mm, ss } = pomoFmt(left);
-  const off = 553 * (1 - (total ? (total - left) / total : 0));
-  const phT = s.phase === "break" ? "休息" : s.running ? "专注中" : left < total ? "暂停" : "专注";
-  return `<section class="tile dark pomo${s.running ? " running" : ""}${s.phase === "break" ? " brk" : ""}" data-kind="pomo"><span class="handle"></span>
-    <div class="h">番茄钟 <span class="lab">25 / 5</span></div>
-    <div class="ring"><svg viewBox="0 0 200 200"><circle class="trk" cx="100" cy="100" r="88"/><circle class="arc" cx="100" cy="100" r="88" style="stroke-dashoffset:${off}"/></svg>
-      <div class="clock"><span data-pomo="mm">${pad(mm)}</span><i>:</i><span data-pomo="ss">${pad(ss)}</span></div><div class="ph">${phT}</div></div>
-    <div class="ctl"><button class="pbtn main" data-act="pomo-toggle">${s.running ? "暂停" : left < total ? "继续" : "开始"}</button><button class="pbtn" data-act="pomo-reset" title="回到 25:00">重置</button></div>
-    <div class="pcnt">今天完成 <b data-pomo="count">${s.count}</b> 个</div>
-    <span class="tag">07 · pomodoro</span></section>`;
-}
+
 
 // 资讯卡预留位：只画空框架，不接抓取、不联网；以后把 config.json 的 news 改成 true 再接原版资讯卡
 function cardNewsPlaceholder() {
@@ -1360,7 +1340,51 @@ function cardResearchPlaceholder() {
     <span class="tag">06 · research</span></section>`;
 }
 
-const renderAll = D => cardDirsearch(D) + cardToday(D) + cardTracks(D) + cardStack(D) + cardWeek(D) + cardIdeas(D) + (V.news === false ? "" : (V.news === "placeholder" ? cardNewsPlaceholder() : cardNews(D))) + cardAnchors(D) + cardPomo() + (V.research === false ? "" : (V.research === "placeholder" ? cardResearchPlaceholder() : cardResearch(D)));
+function heroHTML(D) {
+  const t = D.today;
+  const rev = D.review.total;
+  const now = new Date();
+  const time = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const cur = getPane();
+  const pills = SECTIONS.map(s => `<button class="hpill${s.id === cur ? " active" : ""}" data-act="pane-switch" data-pane="${s.id}">${s.label}</button>`).join("");
+  return `<header class="sb-hero">
+    <div class="hero-left">
+      <div class="hero-eyebrow">SECOND BRAIN · 今日工作台</div>
+      <h1 class="hero-title">第二大脑工作台</h1>
+      <p class="hero-sub">课程进度、复习队列、长期轨道都在这一屏，用上面的胶囊切换分区。</p>
+      <div class="hero-pills">${pills}</div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-date">${esc(t.date)} ${esc(t.weekday)}</div>
+      <div class="hero-time-row"><div class="hero-time" data-hero-time>${time}</div><button class="sb-theme" data-act="theme-toggle" title="切换明暗"></button></div>
+      <div class="hero-actions">
+        <button class="btn hero-main" data-act="open-review">待复习 ${rev} 篇</button>
+        <button class="btn hero-ghost" data-act="create-today">新建今天</button>
+      </div>
+    </div>
+  </header>`;
+}
+
+function stageHTML(D) {
+  const cards = {
+    dirsearch: cardDirsearch(D),
+    today: cardToday(D),
+    tracks: cardTracks(D),
+    stack: cardStack(D),
+    week: cardWeek(D),
+    ideas: cardIdeas(D),
+    news: V.news === false ? "" : (V.news === "placeholder" ? cardNewsPlaceholder() : cardNews(D)),
+    anchors: cardAnchors(D),
+    research: V.research === false ? "" : (V.research === "placeholder" ? cardResearchPlaceholder() : cardResearch(D)),
+  };
+  const panes = SECTIONS.map(s => {
+    const body = s.kinds.map(k => cards[k] || "").join("");
+    return body ? `<section class="sb-pane" data-pane="${s.id}">${body}</section>` : "";
+  }).join("");
+  return `<div class="sb-stage">${panes}</div>`;
+}
+
+const renderAll = D => heroHTML(D) + stageHTML(D);
 
 // ---------- 字体：把 fonts/*.css 里的相对 url 换成 Obsidian 资源路径 ----------
 async function ensureFonts() {
@@ -2128,7 +2152,8 @@ async function onClick(root, D, e) {
       if (name === "research-refresh") return runResearch(root);
       if (name === "pipeline-run") return runPipeline(root);
       if (name === "news-save") return saveNews(root, D, act);
-      if (name === "pomo-toggle" || name === "pomo-reset") return pomoAct(name);
+      if (name === "theme-toggle") return toggleTheme(root);
+      if (name === "pane-switch") return switchPane(root, act.dataset.pane);
       if (name === "open-review") { e.stopPropagation(); return openDetail(root, "review", D, {}); }
       if (name === "reviewed") { e.stopPropagation(); return markReviewed(root, D, act); }
       return;
@@ -2173,7 +2198,7 @@ function fitHeight(root, tries = 0) {
     root.classList.toggle("narrow", w > 0 && w < V.narrowBelow);
     if (w >= V.narrowBelow) {
       // vc 暂时高度为 0（隐藏分栏 / 编辑视图尚未挂载）时不要清空已有高度，否则 fr 轨道与卡内清单会按内容无限撑开
-      if (h > 0) root.style.height = Math.max(680, h) + V.row0 + V.row3 + V.row4 + V.row5 + 28 + "px";
+      if (h > 0) root.style.height = Math.max(680, h) + "px";
     } else {
       root.style.height = "";
     }
@@ -2195,6 +2220,14 @@ function watchMidnight(root) {
     const now = new Date(); now.setHours(0, 0, 0, 0);
     if (ymd(now) !== day) { clearInterval(t); try { dv.index.touch(); } catch (e) { console.warn("[sb-board] 跨日刷新失败", e); } }
   }, 60 * 1000);
+}
+function watchHeroClock(root) {
+  const el = root.querySelector("[data-hero-time]");
+  if (!el) return;
+  const t = setInterval(() => {
+    if (!root.isConnected) { clearInterval(t); return; }
+    const n = new Date(); el.textContent = `${pad(n.getHours())}:${pad(n.getMinutes())}`;
+  }, 20 * 1000);
 }
 
 // 看板只在阅读视图里排版。Homepage 打开时会强制阅读视图，但从文件列表 / 最近文件 / 搜索点开会落到编辑模式，
@@ -2248,22 +2281,27 @@ async function main() {
     ghost.classList.remove("sb-ghost");
     armGhost(ghost);
     bind(ghost, D);
+    applyTheme(ghost);
+    applyPane(ghost);
     const m = ghost.querySelector(".sb-modal");
     if (m) { placeModal(ghost); bindModal(ghost, m); if (!m.contains(document.activeElement)) m.focus({ preventScroll: true }); refocusJot(m); }
     setTimeout(() => ensureReadingView(ghost), 300);
-    startPomo(); watchNews(); watchResearch(); watchPipeline(); loadThumbs(); maybeAutoNews(ghost, D.news); maybeAutoResearch(ghost, D.research);
+    watchNews(); watchResearch(); watchPipeline(); loadThumbs(); watchHeroClock(ghost); maybeAutoNews(ghost, D.news); maybeAutoResearch(ghost, D.research);
     return;
   }
   const root = fresh;
   swapInRoot(root);
   armGhost(root);
   bind(root, D);
+  applyTheme(root);
+  applyPane(root);
   fitHeight(root);
   restoreScroll(root, scrollState);
   watchMidnight(root);
+  watchHeroClock(root);
   setTimeout(() => ensureReadingView(root), 300); // 容器刚才可能还没挂进 DOM，补查一次
   if (window.__sbDetail) openDetail(root, window.__sbDetail.kind, D, window.__sbDetail.src, true); // 重画前开着大窗，就原样放回去
-  startPomo(); watchNews(); watchResearch(); watchPipeline(); loadThumbs(); maybeAutoNews(root, D.news); maybeAutoResearch(root, D.research);
+  watchNews(); watchResearch(); watchPipeline(); loadThumbs(); maybeAutoNews(root, D.news); maybeAutoResearch(root, D.research);
 }
 
 try { await main(); }
